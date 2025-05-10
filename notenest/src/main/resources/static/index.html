@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>NoteNest - Dark Mode</title>
+    <style>
+        body {
+            background-color: #121212;
+            color: #ffffff;
+            font-family: Arial, sans-serif;
+            margin: 40px;
+        }
+
+        input, textarea, button {
+            background-color: #1e1e1e;
+            color: #ffffff;
+            border: 1px solid #333;
+            margin: 10px 0;
+            padding: 10px;
+            width: 300px;
+            border-radius: 4px;
+        }
+
+        input::placeholder, textarea::placeholder {
+            color: #888;
+        }
+
+        button {
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #333333;
+        }
+
+        #notes {
+            margin-top: 30px;
+        }
+
+        .note {
+            background: #1f1f1f;
+            border: 1px solid #333;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 6px;
+        }
+
+        h1, h2, h3 {
+            color: #f1f1f1;
+        }
+
+        small {
+            color: #aaaaaa;
+        }
+    </style>
+</head>
+<body>
+
+<h1>NoteNest 📝</h1>
+
+<label for="noteName">Note Title:</label><br>
+<input type="text" id="noteName" placeholder="Enter note name" /><br>
+
+<label for="noteContent">Note Content:</label><br>
+<textarea id="noteContent" rows="5" placeholder="Enter content"></textarea><br>
+
+<button onclick="addNote()">Add Note</button>
+<button onclick="fetchNotes()">Display Notes</button>
+
+<div id="notes"></div>
+
+<script>
+    const apiBase = "http://localhost:8081/InfoCnt";
+
+    async function addNote() {
+        const name = document.getElementById('noteName').value.trim();
+        const content = document.getElementById('noteContent').value.trim();
+
+        if (!name || !content) {
+            alert("Please fill in both fields.");
+            return;
+        }
+
+        const note = {
+            notename: name,
+            content: content
+        };
+
+        try {
+            const res = await fetch(`${apiBase}/create`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(note)
+            });
+
+            if (!res.ok) {
+                throw new Error("Failed to add note");
+            }
+
+            alert("Note added successfully!");
+            document.getElementById('noteName').value = "";
+            document.getElementById('noteContent').value = "";
+
+        } catch (error) {
+            alert("Error: " + error.message);
+        }
+    }
+
+    async function fetchNotes() {
+        try {
+            const res = await fetch(`${apiBase}/getall`);
+            const notes = await res.json();
+
+            const notesDiv = document.getElementById('notes');
+            notesDiv.innerHTML = "<h2>All Notes</h2>";
+
+            if (notes.length === 0) {
+                notesDiv.innerHTML += "<p>No notes found.</p>";
+            }
+
+            notes.forEach(note => {
+                const noteDiv = document.createElement('div');
+                noteDiv.className = "note";
+                noteDiv.innerHTML = `
+                    <h3>${note.notename}</h3>
+                    <p>${note.content}</p>
+                    <small>Date: ${note.date ? new Date(note.date).toLocaleString() : 'N/A'}</small>
+                `;
+                notesDiv.appendChild(noteDiv);
+            });
+
+        } catch (error) {
+            alert("Error fetching notes: " + error.message);
+        }
+    }
+</script>
+
+</body>
+</html>

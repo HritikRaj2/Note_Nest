@@ -17,6 +17,7 @@ public class InformationEntry {
     @Id
     private ObjectId id;
 
+    @NonNull
     private String notename;
     private LocalDateTime date;
     private String content;
