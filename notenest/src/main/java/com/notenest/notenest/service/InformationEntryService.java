@@ -1,6 +1,7 @@
 package com.notenest.notenest.service;
 
 import com.notenest.notenest.entity.InformationEntry;
+import com.notenest.notenest.entity.User;
 import com.notenest.notenest.repository.InformationEntryRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -21,19 +22,23 @@ public class InformationEntryService {
     @Autowired
     private InformationEntryRepository informationEntryRepository;
 
-//    public InformationEntry saveEntry(InformationEntry entry){
-//        return informationEntryRepository.save(entry);
-//    }
+    @Autowired
+    private UserService userService;
+
     public List<InformationEntry> getAll(){
         return informationEntryRepository.findAll();
     }
 
-//    public void saveEntry(InformationEntry myEntry){
-//        informationEntryRepository.save(myEntry);
+//    public InformationEntry saveEntry(InformationEntry myEntry){
+//        return informationEntryRepository.save(myEntry);
 //    }
 
-    public InformationEntry saveEntry(InformationEntry myEntry){
-        return informationEntryRepository.save(myEntry);
+    @Transactional
+    public void saveEntry(InformationEntry informationEntry,String userName){
+        User user= userService.findByUsername(userName);
+        InformationEntry saved =informationEntryRepository.save(informationEntry);
+        user.getInformationEntries().add(saved);
+        userService.saveUser(user);
     }
 
 

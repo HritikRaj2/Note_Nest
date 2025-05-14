@@ -2,10 +2,14 @@ package com.notenest.notenest.contoller;
 
 
 import com.notenest.notenest.entity.InformationEntry;
+import com.notenest.notenest.entity.User;
 import com.notenest.notenest.service.InformationEntryService;
+import com.notenest.notenest.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -18,9 +22,16 @@ public class InformationController {
     @Autowired
     private InformationEntryService informationEntryService;
 
+    @Autowired
+    private UserService userService;
+
     @GetMapping("/getall")
     public ResponseEntity<?> getAllInformationEntriesofNotes(){
-        List<InformationEntry> all= informationEntryService.getAll();
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String userName=authentication.getName();
+        User user=userService.findByUsername(userName);
+        //List<InformationEntry> all= informationEntryService.getAll();
+        List<InformationEntry> all=user.getInformationEntries();
         return new ResponseEntity<>(all,HttpStatus.OK);
 
 
@@ -28,29 +39,18 @@ public class InformationController {
     @PostMapping("/create")
     public ResponseEntity<InformationEntry> createUser(@RequestBody InformationEntry myEntry) {
         try {
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            String userName=authentication.getName();
             myEntry.setDate(LocalDateTime.now());
-            InformationEntry savedEntry = informationEntryService.saveEntry(myEntry);
-            return new ResponseEntity<>(savedEntry, HttpStatus.CREATED);
+            informationEntryService.saveEntry(myEntry,userName);
+            return new ResponseEntity<>(myEntry, HttpStatus.CREATED);
         } catch (Exception e) {
             return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
 
-//    @PostMapping
-//    public ResponseEntity<InformationEntry> createEntry(@RequestBody InformationEntry myEntry) {
-//        try {
-//            myEntry.setDate(LocalDateTime.now());
-//            informationEntryService.saveEntry(myEntry);
-//            return new ResponseEntity<>(myEntry, HttpStatus.CREATED);
-//        } catch (Exception e) {
-//            return new ResponseEntity<>(null, HttpStatus.BAD_GATEWAY);
-//        }
-//    }
-//      @PostMapping("/create")
-//      public void createUser (@RequestBody InformationEntry myEntry){
-//                informationEntryService.saveEntry(myEntry);
-//}
+
 
 
 }
