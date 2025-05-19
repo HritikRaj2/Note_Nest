@@ -2,205 +2,141 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NoteNest - A Note Taking App</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <title>NoteNest - Dark Mode</title>
     <style>
         body {
+            background-color: #121212;
+            color: #ffffff;
             font-family: Arial, sans-serif;
+            margin: 40px;
         }
-        .container {
-            margin-top: 50px;
+
+        input, textarea, button {
+            background-color: #1e1e1e;
+            color: #ffffff;
+            border: 1px solid #333;
+            margin: 10px 0;
+            padding: 10px;
+            width: 300px;
+            border-radius: 4px;
         }
-        .note-card {
-            margin-top: 20px;
+
+        input::placeholder, textarea::placeholder {
+            color: #888;
         }
-        .login-form, .signup-form {
-            max-width: 400px;
-            margin: auto;
-            padding: 20px;
-            border: 1px solid #ddd;
-            border-radius: 10px;
+
+        button {
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #333333;
+        }
+
+        #notes {
+            margin-top: 30px;
+        }
+
+        .note {
+            background: #1f1f1f;
+            border: 1px solid #333;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 6px;
+        }
+
+        h1, h2, h3 {
+            color: #f1f1f1;
+        }
+
+        small {
+            color: #aaaaaa;
         }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <div id="login-section">
-        <h2>Login</h2>
-        <form id="login-form" class="login-form">
-            <div class="mb-3">
-                <label for="login-username" class="form-label">Username</label>
-                <input type="text" class="form-control" id="login-username" required>
-            </div>
-            <div class="mb-3">
-                <label for="login-password" class="form-label">Password</label>
-                <input type="password" class="form-control" id="login-password" required>
-            </div>
-            <button type="submit" class="btn btn-primary">Login</button>
-        </form>
-        <br>
-        <a href="#" id="show-signup">Don't have an account? Signup here</a>
-    </div>
+<h1>NoteNest 📝</h1>
 
-    <div id="signup-section" style="display: none;">
-        <h2>Signup</h2>
-        <form id="signup-form" class="signup-form">
-            <div class="mb-3">
-                <label for="signup-username" class="form-label">Username</label>
-                <input type="text" class="form-control" id="signup-username" required>
-            </div>
-            <div class="mb-3">
-                <label for="signup-password" class="form-label">Password</label>
-                <input type="password" class="form-control" id="signup-password" required>
-            </div>
-            <button type="submit" class="btn btn-primary">Signup</button>
-        </form>
-        <br>
-        <a href="#" id="show-login">Already have an account? Login here</a>
-    </div>
+<label for="noteName">Note Title:</label><br>
+<input type="text" id="noteName" placeholder="Enter note name" /><br>
 
-    <div id="notes-section" style="display: none;">
-        <h2>Welcome to NoteNest</h2>
-        <form id="note-form" class="mb-3">
-            <div class="mb-3">
-                <label for="note-name" class="form-label">Note Name</label>
-                <input type="text" class="form-control" id="note-name" required>
-            </div>
-            <div class="mb-3">
-                <label for="note-content" class="form-label">Note Content</label>
-                <textarea class="form-control" id="note-content" required></textarea>
-            </div>
-            <button type="submit" class="btn btn-primary">Create Note</button>
-        </form>
+<label for="noteContent">Note Content:</label><br>
+<textarea id="noteContent" rows="5" placeholder="Enter content"></textarea><br>
 
-        <div id="notes-list">
-            <h3>Your Notes</h3>
-            <div id="notes-container"></div>
-        </div>
-    </div>
-</div>
+<button onclick="addNote()">Add Note</button>
+<button onclick="fetchNotes()">Display Notes</button>
+
+<div id="notes"></div>
 
 <script>
-    const loginForm = document.getElementById('login-form');
-    const signupForm = document.getElementById('signup-form');
-    const noteForm = document.getElementById('note-form');
-    const notesContainer = document.getElementById('notes-container');
-    const showSignup = document.getElementById('show-signup');
-    const showLogin = document.getElementById('show-login');
-    const loginSection = document.getElementById('login-section');
-    const signupSection = document.getElementById('signup-section');
-    const notesSection = document.getElementById('notes-section');
+    const apiBase = "http://localhost:8081/InfoCnt";
 
-    let token = localStorage.getItem('auth-token');
+    async function addNote() {
+        const name = document.getElementById('noteName').value.trim();
+        const content = document.getElementById('noteContent').value.trim();
 
-    // Check if user is already logged in
-    if (token) {
-        showNotes();
+        if (!name || !content) {
+            alert("Please fill in both fields.");
+            return;
+        }
+
+        const note = {
+            notename: name,
+            content: content
+        };
+
+        try {
+            const res = await fetch(`${apiBase}/create`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(note)
+            });
+
+            if (!res.ok) {
+                throw new Error("Failed to add note");
+            }
+
+            alert("Note added successfully!");
+            document.getElementById('noteName').value = "";
+            document.getElementById('noteContent').value = "";
+
+        } catch (error) {
+            alert("Error: " + error.message);
+        }
     }
 
-    loginForm.addEventListener('submit', function(e) {
-        e.preventDefault();
-        const username = document.getElementById('login-username').value;
-        const password = document.getElementById('login-password').value;
+    async function fetchNotes() {
+        try {
+            const res = await fetch(`${apiBase}/getall`);
+            const notes = await res.json();
 
-        fetch('http://localhost:8081/api/login', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ username, password })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.message === "Login successful") {
-                localStorage.setItem('auth-token', 'your-auth-token-here');
-                token = 'your-auth-token-here';
-                loginSection.style.display = 'none';
-                showNotes();
-            } else {
-                alert('Login failed: ' + data.message);
+            const notesDiv = document.getElementById('notes');
+            notesDiv.innerHTML = "<h2>All Notes</h2>";
+
+            if (notes.length === 0) {
+                notesDiv.innerHTML += "<p>No notes found.</p>";
             }
-        });
-    });
 
-    signupForm.addEventListener('submit', function(e) {
-        e.preventDefault();
-        const username = document.getElementById('signup-username').value;
-        const password = document.getElementById('signup-password').value;
-
-        fetch('http://localhost:8081/api/signup', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ username, password })
-        })
-        .then(response => response.json())
-        .then(data => {
-            alert('Signup successful! Please login now.');
-            showSignup.style.display = 'none';
-            showLogin.style.display = 'inline-block';
-        });
-    });
-
-    noteForm.addEventListener('submit', function(e) {
-        e.preventDefault();
-        const noteName = document.getElementById('note-name').value;
-        const noteContent = document.getElementById('note-content').value;
-
-        fetch('http://localhost:8081/InfoCnt/create', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': 'Bearer ' + token
-            },
-            body: JSON.stringify({ notename: noteName, content: noteContent })
-        })
-        .then(response => response.json())
-        .then(data => {
-            showNotes();
-        });
-    });
-
-    showSignup.addEventListener('click', function() {
-        loginSection.style.display = 'none';
-        signupSection.style.display = 'block';
-    });
-
-    showLogin.addEventListener('click', function() {
-        signupSection.style.display = 'none';
-        loginSection.style.display = 'block';
-    });
-
-    function showNotes() {
-        fetch('http://localhost:8081/InfoCnt/getall', {
-            method: 'GET',
-            headers: {
-                'Authorization': 'Bearer ' + token
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            notesContainer.innerHTML = '';
-            data.forEach(note => {
-                const noteElement = document.createElement('div');
-                noteElement.className = 'note-card card';
-                noteElement.innerHTML = `
-                    <div class="card-body">
-                        <h5 class="card-title">${note.notename}</h5>
-                        <p class="card-text">${note.content}</p>
-                        <p class="card-text"><small class="text-muted">${new Date(note.date).toLocaleString()}</small></p>
-                    </div>
+            notes.forEach(note => {
+                const noteDiv = document.createElement('div');
+                noteDiv.className = "note";
+                noteDiv.innerHTML = `
+                    <h3>${note.notename}</h3>
+                    <p>${note.content}</p>
+                    <small>Date: ${note.date ? new Date(note.date).toLocaleString() : 'N/A'}</small>
                 `;
-                notesContainer.appendChild(noteElement);
+                notesDiv.appendChild(noteDiv);
             });
-            notesSection.style.display = 'block';
-        });
+
+        } catch (error) {
+            alert("Error fetching notes: " + error.message);
+        }
     }
 </script>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
