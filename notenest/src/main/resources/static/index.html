@@ -1,142 +1,121 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>NoteNest - Dark Mode</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>NoteNest Auth & Info</title>
     <style>
         body {
-            background-color: #121212;
-            color: #ffffff;
-            font-family: Arial, sans-serif;
-            margin: 40px;
+          font-family: Arial, sans-serif;
+          padding: 20px;
         }
-
-        input, textarea, button {
-            background-color: #1e1e1e;
-            color: #ffffff;
-            border: 1px solid #333;
-            margin: 10px 0;
-            padding: 10px;
-            width: 300px;
-            border-radius: 4px;
+        input, button {
+          padding: 8px;
+          margin: 5px;
         }
-
-        input::placeholder, textarea::placeholder {
-            color: #888;
+        .section {
+          margin-bottom: 20px;
         }
-
-        button {
-            cursor: pointer;
-            transition: background-color 0.3s ease;
-        }
-
-        button:hover {
-            background-color: #333333;
-        }
-
-        #notes {
-            margin-top: 30px;
-        }
-
-        .note {
-            background: #1f1f1f;
-            border: 1px solid #333;
-            padding: 15px;
-            margin-bottom: 10px;
-            border-radius: 6px;
-        }
-
-        h1, h2, h3 {
-            color: #f1f1f1;
-        }
-
-        small {
-            color: #aaaaaa;
+        pre {
+          background: #f4f4f4;
+          padding: 10px;
+          overflow-x: auto;
         }
     </style>
 </head>
 <body>
 
-<h1>NoteNest 📝</h1>
+<h1>NoteNest Authentication Frontend</h1>
 
-<label for="noteName">Note Title:</label><br>
-<input type="text" id="noteName" placeholder="Enter note name" /><br>
+<div class="section">
+    <h2>Signup</h2>
+    <input type="text" id="signup-username" placeholder="Username" />
+    <input type="password" id="signup-password" placeholder="Password" />
+    <button onclick="signup()">Sign Up</button>
+</div>
 
-<label for="noteContent">Note Content:</label><br>
-<textarea id="noteContent" rows="5" placeholder="Enter content"></textarea><br>
+<div class="section">
+    <h2>Login</h2>
+    <input type="text" id="login-username" placeholder="Username" />
+    <input type="password" id="login-password" placeholder="Password" />
+    <button onclick="login()">Login</button>
+    <p><strong>Token:</strong> <span id="token-output">[None]</span></p>
+</div>
 
-<button onclick="addNote()">Add Note</button>
-<button onclick="fetchNotes()">Display Notes</button>
+<div class="section">
+    <h2>Fetch Information (Authenticated)</h2>
+    <button onclick="fetchInfo()">Get Info Entries</button>
+    <pre id="info-output">[Click above to load]</pre>
+</div>
 
-<div id="notes"></div>
+<div class="section">
+    <h2>Admin Endpoint</h2>
+    <button onclick="adminCall()">Call /admin/all (Requires ADMIN Role)</button>
+    <pre id="admin-output">[Only if you have admin rights]</pre>
+</div>
 
 <script>
-    const apiBase = "http://localhost:8081/InfoCnt";
+    const API_BASE = "http://localhost:8081";
 
-    async function addNote() {
-        const name = document.getElementById('noteName').value.trim();
-        const content = document.getElementById('noteContent').value.trim();
+    function signup() {
+      const username = document.getElementById("signup-username").value;
+      const password = document.getElementById("signup-password").value;
 
-        if (!name || !content) {
-            alert("Please fill in both fields.");
-            return;
-        }
-
-        const note = {
-            notename: name,
-            content: content
-        };
-
-        try {
-            const res = await fetch(`${apiBase}/create`, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify(note)
-            });
-
-            if (!res.ok) {
-                throw new Error("Failed to add note");
-            }
-
-            alert("Note added successfully!");
-            document.getElementById('noteName').value = "";
-            document.getElementById('noteContent').value = "";
-
-        } catch (error) {
-            alert("Error: " + error.message);
-        }
+      fetch(`${API_BASE}/public/signup`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password })
+      })
+      .then(res => res.ok ? alert("Signup successful") : alert("Signup failed"))
+      .catch(err => console.error(err));
     }
 
-    async function fetchNotes() {
-        try {
-            const res = await fetch(`${apiBase}/getall`);
-            const notes = await res.json();
+    function login() {
+      const username = document.getElementById("login-username").value;
+      const password = document.getElementById("login-password").value;
 
-            const notesDiv = document.getElementById('notes');
-            notesDiv.innerHTML = "<h2>All Notes</h2>";
-
-            if (notes.length === 0) {
-                notesDiv.innerHTML += "<p>No notes found.</p>";
-            }
-
-            notes.forEach(note => {
-                const noteDiv = document.createElement('div');
-                noteDiv.className = "note";
-                noteDiv.innerHTML = `
-                    <h3>${note.notename}</h3>
-                    <p>${note.content}</p>
-                    <small>Date: ${note.date ? new Date(note.date).toLocaleString() : 'N/A'}</small>
-                `;
-                notesDiv.appendChild(noteDiv);
-            });
-
-        } catch (error) {
-            alert("Error fetching notes: " + error.message);
+      fetch(`${API_BASE}/public/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password })
+      })
+      .then(res => res.text())
+      .then(token => {
+        if (token.includes("Incorrect")) {
+          alert("Login failed");
+        } else {
+          localStorage.setItem("token", token);
+          document.getElementById("token-output").innerText = token;
         }
+      })
+      .catch(err => console.error(err));
+    }
+
+    function fetchInfo() {
+      const token = localStorage.getItem("token");
+
+      fetch(`${API_BASE}/InfoCnt/getall`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      .then(res => res.json())
+      .then(data => {
+        document.getElementById("info-output").innerText = JSON.stringify(data, null, 2);
+      })
+      .catch(err => console.error(err));
+    }
+
+    function adminCall() {
+      const token = localStorage.getItem("token");
+
+      fetch(`${API_BASE}/admin/all`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      .then(res => res.text())
+      .then(data => {
+        document.getElementById("admin-output").innerText = data;
+      })
+      .catch(err => console.error(err));
     }
 </script>
-
 </body>
 </html>
