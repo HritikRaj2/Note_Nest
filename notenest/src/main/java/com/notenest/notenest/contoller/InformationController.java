@@ -26,10 +26,12 @@ public class InformationController {
     private UserService userService;
 
     @GetMapping("/getall")
-    public ResponseEntity<?> getAllInformationEntriesofNotes(){
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        String userName=authentication.getName();
-        User user=userService.findByUsername(userName);
+    public ResponseEntity<?> getAllInformationEntriesofNotes(@RequestHeader("Authorization")String jwt){
+//        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+//        String userName=authentication.getName();
+        String token = jwt.substring(7);
+        User reqUser=userService.findUserByJwt(token);
+        User user=userService.findByUsername(reqUser.getUsername());
         //List<InformationEntry> all= informationEntryService.getAll();
         List<InformationEntry> all=user.getInformationEntries();
         return new ResponseEntity<>(all,HttpStatus.OK);
@@ -37,12 +39,14 @@ public class InformationController {
 
     }
     @PostMapping("/create")
-    public ResponseEntity<InformationEntry> createUser(@RequestBody InformationEntry myEntry) {
+    public ResponseEntity<InformationEntry> createUser(@RequestHeader("Authorization")String jwt,@RequestBody InformationEntry myEntry) {
         try {
-            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            String userName=authentication.getName();
+//            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+//            String userName=authentication.getName();
+            String token = jwt.substring(7);
+            User reqUser=userService.findUserByJwt(token);
             myEntry.setDate(LocalDateTime.now());
-            informationEntryService.saveEntry(myEntry,userName);
+            informationEntryService.saveEntry(myEntry, reqUser.getUsername());
             return new ResponseEntity<>(myEntry, HttpStatus.CREATED);
         } catch (Exception e) {
             return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);

@@ -27,6 +27,9 @@ public class User {
     private String username;
 
     @NonNull
+    private String email;
+
+    @NonNull
     private String password;
 
     @DBRef

@@ -1,6 +1,7 @@
 package com.notenest.notenest.service;
 
 
+import com.notenest.notenest.config.JwtProvider;
 import com.notenest.notenest.entity.User;
 import com.notenest.notenest.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,6 +27,7 @@ public class UserService {
     private static final Logger logger=LoggerFactory.getLogger(UserService.class);
     public void saveNewUser(User user){
         user.setPassword(passwordEncoder.encode(user.getPassword()));
+        user.setEmail(user.getEmail());
         user.setRoles(Arrays.asList("USER"));
         userRepository.save(user);
     }
@@ -38,7 +40,7 @@ public class UserService {
     }
     public void saveAdmin(User user){
         try{
-            user.setPassword(passwordEncoder.encode(user.getPassword()));
+            user.setPassword(user.getPassword());
             user.setRoles(Arrays.asList("User", "ADMIN"));
             userRepository.save(user);
         }catch (Exception e){
@@ -46,5 +48,12 @@ public class UserService {
             logger.info("its not working");
         }
     }
+
+    public User findUserByJwt(String jwt){
+        String email= JwtProvider.getEmailFromToken(jwt);
+        User user=userRepository.findByEmail(email);
+        return user;
+    }
+
 
 }

@@ -2,119 +2,201 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>NoteNest Auth & Info</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>NoteNest</title>
     <style>
         body {
-          font-family: Arial, sans-serif;
-          padding: 20px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: #121212;
+            color: #f4f4f4;
         }
-        input, button {
-          padding: 8px;
-          margin: 5px;
+        .container {
+            width: 90%;
+            max-width: 600px;
+            margin: 50px auto;
+            background: #1e1e1e;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 0 15px rgba(255, 255, 255, 0.1);
         }
-        .section {
-          margin-bottom: 20px;
+        h2, h3 {
+            text-align: center;
+            color: #ffffff;
         }
-        pre {
-          background: #f4f4f4;
-          padding: 10px;
-          overflow-x: auto;
+        .hidden { display: none; }
+        input, textarea, button {
+            width: 100%;
+            padding: 12px;
+            margin-top: 10px;
+            background: #2a2a2a;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            box-sizing: border-box;
+            font-size: 16px;
+        }
+        input::placeholder, textarea::placeholder {
+            color: #aaa;
+        }
+        button {
+            background-color: #3f51b5;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        button:hover {
+            background-color: #5c6bc0;
+        }
+        a { color: #90caf9; cursor: pointer; }
+        .note {
+            background: #2c2c2c;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 6px;
+            box-shadow: 0 0 5px rgba(255, 255, 255, 0.05);
+        }
+        .note-title {
+            font-weight: bold;
+            font-size: 18px;
+            margin-bottom: 5px;
+            color: #ffca28;
         }
     </style>
 </head>
 <body>
+<div class="container">
+    <h2 id="form-title">Sign In</h2>
 
-<h1>NoteNest Authentication Frontend</h1>
+    <div id="signup-form" class="hidden">
+        <input type="text" id="signup-username" placeholder="Username" required />
+        <input type="email" id="signup-email" placeholder="Email" required />
+        <input type="password" id="signup-password" placeholder="Password" required />
+        <button onclick="signup()">Sign Up</button>
+        <p>Already have an account? <a onclick="toggleForm('signin')">Sign In</a></p>
+    </div>
 
-<div class="section">
-    <h2>Signup</h2>
-    <input type="text" id="signup-username" placeholder="Username" />
-    <input type="password" id="signup-password" placeholder="Password" />
-    <button onclick="signup()">Sign Up</button>
-</div>
+    <div id="signin-form">
+        <input type="email" id="signin-email" placeholder="Email" required />
+        <input type="password" id="signin-password" placeholder="Password" required />
+        <button onclick="signin()">Sign In</button>
+        <p>Don't have an account? <a onclick="toggleForm('signup')">Sign Up</a></p>
+    </div>
 
-<div class="section">
-    <h2>Login</h2>
-    <input type="text" id="login-username" placeholder="Username" />
-    <input type="password" id="login-password" placeholder="Password" />
-    <button onclick="login()">Login</button>
-    <p><strong>Token:</strong> <span id="token-output">[None]</span></p>
-</div>
-
-<div class="section">
-    <h2>Fetch Information (Authenticated)</h2>
-    <button onclick="fetchInfo()">Get Info Entries</button>
-    <pre id="info-output">[Click above to load]</pre>
-</div>
-
-<div class="section">
-    <h2>Admin Endpoint</h2>
-    <button onclick="adminCall()">Call /admin/all (Requires ADMIN Role)</button>
-    <pre id="admin-output">[Only if you have admin rights]</pre>
+    <div id="home" class="hidden">
+        <h2>Welcome to NoteNest</h2>
+        <textarea id="note-content" placeholder="Write your note..."></textarea>
+        <input type="text" id="note-title" placeholder="Title" />
+        <button onclick="createNote()">Save Note</button>
+        <h3>Your Notes</h3>
+        <div id="notes-list"></div>
+        <button onclick="logout()">Logout</button>
+    </div>
 </div>
 
 <script>
-    const API_BASE = "http://localhost:8081";
+    let token = localStorage.getItem("token") || null;
+
+    if (token) showHome();
+
+    function toggleForm(type) {
+        document.getElementById("signup-form").classList.toggle("hidden", type !== "signup");
+        document.getElementById("signin-form").classList.toggle("hidden", type !== "signin");
+        document.getElementById("form-title").innerText = type === "signup" ? "Sign Up" : "Sign In";
+    }
 
     function signup() {
-      const username = document.getElementById("signup-username").value;
-      const password = document.getElementById("signup-password").value;
+        const username = document.getElementById("signup-username").value;
+        const email = document.getElementById("signup-email").value;
+        const password = document.getElementById("signup-password").value;
 
-      fetch(`${API_BASE}/public/signup`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password })
-      })
-      .then(res => res.ok ? alert("Signup successful") : alert("Signup failed"))
-      .catch(err => console.error(err));
+        fetch("http://localhost:8081/api/signup", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username, email, password })
+        })
+        .then(res => res.json())
+        .then(data => {
+            alert(data.message);
+            token = data.token;
+            localStorage.setItem("token", token);
+            showHome();
+        });
     }
 
-    function login() {
-      const username = document.getElementById("login-username").value;
-      const password = document.getElementById("login-password").value;
+    function signin() {
+        const email = document.getElementById("signin-email").value;
+        const password = document.getElementById("signin-password").value;
 
-      fetch(`${API_BASE}/public/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password })
-      })
-      .then(res => res.text())
-      .then(token => {
-        if (token.includes("Incorrect")) {
-          alert("Login failed");
-        } else {
-          localStorage.setItem("token", token);
-          document.getElementById("token-output").innerText = token;
-        }
-      })
-      .catch(err => console.error(err));
+        fetch("http://localhost:8081/api/signin", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email, password })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.token) {
+                token = data.token;
+                localStorage.setItem("token", token);
+                showHome();
+            } else {
+                alert("Invalid credentials");
+            }
+        });
     }
 
-    function fetchInfo() {
-      const token = localStorage.getItem("token");
-
-      fetch(`${API_BASE}/InfoCnt/getall`, {
-        headers: { Authorization: `Bearer ${token}` }
-      })
-      .then(res => res.json())
-      .then(data => {
-        document.getElementById("info-output").innerText = JSON.stringify(data, null, 2);
-      })
-      .catch(err => console.error(err));
+    function showHome() {
+        document.getElementById("signup-form").classList.add("hidden");
+        document.getElementById("signin-form").classList.add("hidden");
+        document.getElementById("form-title").innerText = "";
+        document.getElementById("home").classList.remove("hidden");
+        loadNotes();
     }
 
-    function adminCall() {
-      const token = localStorage.getItem("token");
+    function loadNotes() {
+        fetch("http://localhost:8081/InfoCnt/getall", {
+            method: "GET",
+            headers: { "Authorization": "Bearer " + token }
+        })
+        .then(res => res.json())
+        .then(notes => {
+            const notesList = document.getElementById("notes-list");
+            notesList.innerHTML = "";
+            notes.forEach(note => {
+                const div = document.createElement("div");
+                div.className = "note";
+                div.innerHTML = `<div class='note-title'>${note.notename}</div><div>${note.content}</div>`;
+                notesList.appendChild(div);
+            });
+        });
+    }
 
-      fetch(`${API_BASE}/admin/all`, {
-        headers: { Authorization: `Bearer ${token}` }
-      })
-      .then(res => res.text())
-      .then(data => {
-        document.getElementById("admin-output").innerText = data;
-      })
-      .catch(err => console.error(err));
+    function createNote() {
+        const notename = document.getElementById("note-title").value;
+        const content = document.getElementById("note-content").value;
+
+        fetch("http://localhost:8081/InfoCnt/create", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": "Bearer " + token
+            },
+            body: JSON.stringify({ notename, content })
+        })
+        .then(res => {
+            if (res.status === 201) {
+                loadNotes();
+                document.getElementById("note-title").value = "";
+                document.getElementById("note-content").value = "";
+            } else {
+                alert("Failed to save note");
+            }
+        });
+    }
+
+    function logout() {
+        localStorage.removeItem("token");
+        location.reload();
     }
 </script>
 </body>
